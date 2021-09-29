@@ -27,6 +27,7 @@ void AHeightFieldNoiseActor::PostLoad()
 
 void AHeightFieldNoiseActor::SetupMeshBuffers()
 {
+	const int32 NumberOfSides = 4; // create 4 mesh section TODO remove if not needed
 	const int32 NumberOfPoints = (LengthSections + 1) * (WidthSections + 1);
 	const int32 VertexCount = LengthSections * WidthSections * 4; // 4x vertices per quad/section
 	const int32 TriangleCount = LengthSections * WidthSections * 2 * 3; // 2x3 vertex indexes per quad
@@ -80,16 +81,25 @@ void AHeightFieldNoiseActor::GenerateMesh()
 		return;
 	}
 
-	SetupMeshBuffers();
-	GeneratePoints();
-	GenerateGrid(Positions, Triangles, Normals, Tangents, TexCoords, FVector2D(Size.X, Size.Y), LengthSections, WidthSections, HeightValues);
+	// SetupMeshBuffers();
+	// GeneratePoints();
+	for(int32 i = 0; i < 4; i++)
+	{
+		SetupMeshBuffers();
+		GeneratePoints();
+		GenerateGrid(i, Positions, Triangles, Normals, Tangents, TexCoords, FVector2D(Size.X, Size.Y), LengthSections, WidthSections, HeightValues);
+		const TArray<FColor> EmptyColors{};
+		StaticProvider->CreateSectionFromComponents(0, i, 0, Positions, Triangles, Normals, TexCoords, EmptyColors, Tangents, ERuntimeMeshUpdateFrequency::Infrequent, false);
+		StaticProvider->SetupMaterialSlot(0, TEXT("CylinderMaterial"), Material);
+	}
+	//GenerateGrid(Positions, Triangles, Normals, Tangents, TexCoords, FVector2D(Size.X, Size.Y), LengthSections, WidthSections, HeightValues);
 
-	const TArray<FColor> EmptyColors{};
-	StaticProvider->CreateSectionFromComponents(0, 0, 0, Positions, Triangles, Normals, TexCoords, EmptyColors, Tangents, ERuntimeMeshUpdateFrequency::Infrequent, false);
-	StaticProvider->SetupMaterialSlot(0, TEXT("CylinderMaterial"), Material);
+	// const TArray<FColor> EmptyColors{};
+	// StaticProvider->CreateSectionFromComponents(0, 0, 0, Positions, Triangles, Normals, TexCoords, EmptyColors, Tangents, ERuntimeMeshUpdateFrequency::Infrequent, false);
+	// StaticProvider->SetupMaterialSlot(0, TEXT("CylinderMaterial"), Material);
 }
 
-void AHeightFieldNoiseActor::GenerateGrid(TArray<FVector>& InVertices, TArray<int32>& InTriangles, TArray<FVector>& InNormals, TArray<FRuntimeMeshTangent>& InTangents, TArray<FVector2D>& InTexCoords, const FVector2D InSize, const int32 InLengthSections, const int32 InWidthSections, const TArray<float>& InHeightValues)
+void AHeightFieldNoiseActor::GenerateGrid(const int32 SectionIndex, TArray<FVector>& InVertices, TArray<int32>& InTriangles, TArray<FVector>& InNormals, TArray<FRuntimeMeshTangent>& InTangents, TArray<FVector2D>& InTexCoords, const FVector2D InSize, const int32 InLengthSections, const int32 InWidthSections, const TArray<float>& InHeightValues)
 {
 	// Note the coordinates are a bit weird here since I aligned it to the transform (X is forwards or "up", which Y is to the right)
 	// Should really fix this up and use standard X, Y coords then transform into object space?
@@ -117,10 +127,10 @@ void AHeightFieldNoiseActor::GenerateGrid(TArray<FVector>& InVertices, TArray<in
 			const FVector PTopRight = FVector((X + 1) * SectionSize.X, (Y + 1) * SectionSize.Y, InHeightValues[NoiseIndex_TopRight]);
 			const FVector PTopLeft = FVector((X+1) * SectionSize.X, Y * SectionSize.Y, InHeightValues[NoiseIndex_TopLeft]);
 			
-			InVertices[BottomLeftIndex] = PBottomLeft;
-			InVertices[BottomRightIndex] = PBottomRight;
-			InVertices[TopRightIndex] = PTopRight;
-			InVertices[TopLeftIndex] = PTopLeft;
+			InVertices[BottomLeftIndex] = PBottomLeft.RotateAngleAxis(SectionIndex * 90.f, FVector(1.f, 0.f, 0.f));
+			InVertices[BottomRightIndex] = PBottomRight.RotateAngleAxis(SectionIndex * 90.f, FVector(1.f, 0.f, 0.f));
+			InVertices[TopRightIndex] = PTopRight.RotateAngleAxis(SectionIndex * 90.f, FVector(1.f, 0.f, 0.f));
+			InVertices[TopLeftIndex] = PTopLeft.RotateAngleAxis(SectionIndex * 90.f, FVector(1.f, 0.f, 0.f));
 
 			// Note that Unreal UV origin (0,0) is top left
 			InTexCoords[BottomLeftIndex] = FVector2D(static_cast<float>(X) / static_cast<float>(InLengthSections), static_cast<float>(Y) / static_cast<float>(InWidthSections));
