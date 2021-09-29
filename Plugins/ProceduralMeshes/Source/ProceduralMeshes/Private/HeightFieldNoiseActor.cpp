@@ -67,7 +67,7 @@ void AHeightFieldNoiseActor::GeneratePoints()
 	// Fill height data with random values
 	for (int32 i = 0; i < NumberOfPoints; i++)
 	{
-		HeightValues[i] = RngStream.FRandRange(0, Size.Z);
+		HeightValues[i] = RngStream.FRandRange(0, HeightFactor);
 	}
 }
 
@@ -88,7 +88,7 @@ void AHeightFieldNoiseActor::GenerateMesh()
 	{
 		SetupMeshBuffers();
 		GeneratePoints();
-		GenerateGrid(i, Positions, Triangles, Normals, Tangents, TexCoords, FVector2D(Size.X, Size.Y), LengthSections, WidthSections, HeightValues);
+		GenerateGrid(i, Positions, Triangles, Normals, Tangents, TexCoords, Size, LengthSections, WidthSections, HeightValues);
 		const TArray<FColor> EmptyColors{};
 		StaticProvider->CreateSectionFromComponents(0, i, 0, Positions, Triangles, Normals, TexCoords, EmptyColors, Tangents, ERuntimeMeshUpdateFrequency::Infrequent, false);
 		StaticProvider->SetupMaterialSlot(0, TEXT("CylinderMaterial"), Material);
@@ -100,11 +100,39 @@ void AHeightFieldNoiseActor::GenerateMesh()
 	// StaticProvider->SetupMaterialSlot(0, TEXT("CylinderMaterial"), Material);
 }
 
-void AHeightFieldNoiseActor::GenerateGrid(const int32 SectionIndex, TArray<FVector>& InVertices, TArray<int32>& InTriangles, TArray<FVector>& InNormals, TArray<FRuntimeMeshTangent>& InTangents, TArray<FVector2D>& InTexCoords, const FVector2D InSize, const int32 InLengthSections, const int32 InWidthSections, const TArray<float>& InHeightValues)
+void AHeightFieldNoiseActor::GenerateGrid(const int32 SectionIndex, TArray<FVector>& InVertices, TArray<int32>& InTriangles, TArray<FVector>& InNormals, TArray<FRuntimeMeshTangent>& InTangents, TArray<FVector2D>& InTexCoords, const FVector InSize, const int32 InLengthSections, const int32 InWidthSections, const TArray<float>& InHeightValues)
 {
 	// Note the coordinates are a bit weird here since I aligned it to the transform (X is forwards or "up", which Y is to the right)
 	// Should really fix this up and use standard X, Y coords then transform into object space?
-	const FVector2D SectionSize = FVector2D(InSize.X / InLengthSections, InSize.Y / InWidthSections);
+	
+	//Size calc 
+	FVector2D SectionSZ;
+	switch (SectionIndex)
+			{
+			case 0:
+			SectionSZ = FVector2D(InSize.X / InLengthSections, InSize.Y / InWidthSections);
+			break;
+			case 1:
+			SectionSZ = FVector2D(InSize.X / InLengthSections, InSize.Z / InWidthSections);
+			break;
+			case 2:
+			SectionSZ = FVector2D(InSize.X / InLengthSections, InSize.Y / InWidthSections);
+			break;
+			case 3:
+			SectionSZ = FVector2D(InSize.X / InLengthSections, InSize.Z / InWidthSections);
+			break;
+			case 4:
+			SectionSZ = FVector2D(InSize.Z / InLengthSections, InSize.Y / InWidthSections);
+			break;
+			case 5:
+			SectionSZ = FVector2D(InSize.Z / InLengthSections, InSize.Y / InWidthSections);
+			break;
+
+			default:
+			SectionSZ = FVector2D(InSize.X / InLengthSections, InSize.Y / InWidthSections);
+			break;
+			}
+	const FVector2D SectionSize = SectionSZ;
 	int32 VertexIndex = 0;
 	int32 TriangleIndex = 0;
 
@@ -130,24 +158,24 @@ void AHeightFieldNoiseActor::GenerateGrid(const int32 SectionIndex, TArray<FVect
 			switch (SectionIndex)
 			{
 			case 0:
-				SideOffset = FVector(-(InSize.X/2.f), -(InSize.X/2.f), (InSize.X/2.f));
+				SideOffset = FVector(-(InSize.X/2.f), -(InSize.Y/2.f), (InSize.Z/2.f));
 				break;
 			case 1:
-				SideOffset = FVector(-(InSize.X/2.f), -(InSize.X/2.f), -(InSize.X/2.f));
+				SideOffset = FVector(-(InSize.X/2.f), -(InSize.Y/2.f), -(InSize.Z/2.f));
 				break;
 			case 2:
-				SideOffset = FVector(-(InSize.X/2.f), InSize.X/2.f, -(InSize.X/2.f));
+				SideOffset = FVector(-(InSize.X/2.f), InSize.Y/2.f, -(InSize.Z/2.f));
 				break;
 			case 3:
-				SideOffset = FVector(-(InSize.X/2.f), InSize.X/2.f, InSize.X/2.f);
+				SideOffset = FVector(-(InSize.X/2.f), InSize.Y/2.f, InSize.Z/2.f);
 				break;
 			case 4:
-				SideOffset = FVector((InSize.X/2.f), -(InSize.X/2.f), (InSize.X/2.f));
+				SideOffset = FVector((InSize.X/2.f), -(InSize.Y/2.f), (InSize.Z/2.f));
 				SideRotationAxis = FVector(0.f, 1.f, 0.f); // y axis
 				SideRotationAngle = 90.f;
 				break;
 			case 5:
-				SideOffset = FVector(-(InSize.X/2.f), -(InSize.X/2.f), -(InSize.X/2.f));
+				SideOffset = FVector(-(InSize.X/2.f), -(InSize.Y/2.f), -(InSize.Z/2.f));
 				SideRotationAxis = FVector(0.f, 1.f, 0.f); // y axis
 				SideRotationAngle = -90.f;
 				break;

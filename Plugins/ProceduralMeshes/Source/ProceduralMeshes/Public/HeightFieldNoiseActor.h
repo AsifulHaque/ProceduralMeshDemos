@@ -17,13 +17,16 @@ public:
 	AHeightFieldNoiseActor();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Procedural Parameters")
-	FVector Size = FVector(1000.0f, 1000.0f, 20.0f);
+	FVector Size = FVector(1000.0f, 1000.0f, 1000.0f);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Procedural Parameters")
 	int32 LengthSections = 100;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Procedural Parameters")
 	int32 WidthSections = 100;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Procedural Parameters")
+	float HeightFactor = 20.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Procedural Parameters")
 	int32 RandomSeed = 1238;
@@ -41,7 +44,7 @@ protected:
 private:
 	void GenerateMesh();
 	void GeneratePoints();
-	static void GenerateGrid(const int32 SectionIndex, TArray<FVector>& InVertices, TArray<int32>& InTriangles, TArray<FVector>& InNormals, TArray<FRuntimeMeshTangent>& InTangents, TArray<FVector2D>& InTexCoords, const FVector2D InSize, const int32 InLengthSections, const int32 InWidthSections, const TArray<float>& InHeightValues);
+	static void GenerateGrid(const int32 SectionIndex, TArray<FVector>& InVertices, TArray<int32>& InTriangles, TArray<FVector>& InNormals, TArray<FRuntimeMeshTangent>& InTangents, TArray<FVector2D>& InTexCoords, const FVector InSize, const int32 InLengthSections, const int32 InWidthSections, const TArray<float>& InHeightValues);
 
 	UPROPERTY(Transient)
 	FRandomStream RngStream;
