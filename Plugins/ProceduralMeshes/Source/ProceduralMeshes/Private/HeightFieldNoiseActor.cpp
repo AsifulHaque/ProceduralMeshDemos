@@ -122,15 +122,36 @@ void AHeightFieldNoiseActor::GenerateGrid(const int32 SectionIndex, TArray<FVect
 			const int32 NoiseIndex_TopLeft = ((X+1) * InWidthSections) + Y;
 			const int32 NoiseIndex_TopRight = NoiseIndex_TopLeft + 1;
 
-			const FVector PBottomLeft = FVector(X * SectionSize.X, Y * SectionSize.Y, InHeightValues[NoiseIndex_BottomLeft]);
-			const FVector PBottomRight = FVector(X * SectionSize.X, (Y+1) * SectionSize.Y, InHeightValues[NoiseIndex_BottomRight]);
-			const FVector PTopRight = FVector((X + 1) * SectionSize.X, (Y + 1) * SectionSize.Y, InHeightValues[NoiseIndex_TopRight]);
-			const FVector PTopLeft = FVector((X+1) * SectionSize.X, Y * SectionSize.Y, InHeightValues[NoiseIndex_TopLeft]);
+			//Determine the section offset for each of the 6 sides
+			FVector SectionOffset = FVector(-(InSize.X/2.f), 0.f, 0.f);
+			switch (SectionIndex)
+			{
+			case 0:
+				SectionOffset = FVector(-(InSize.X/2.f), -(InSize.X/2.f), (InSize.X/2.f));
+				break;
+			case 1:
+				SectionOffset = FVector(-(InSize.X/2.f), -(InSize.X/2.f), -(InSize.X/2.f));
+				break;
+			case 2:
+				SectionOffset = FVector(-(InSize.X/2.f), InSize.X/2.f, -(InSize.X/2.f));
+				break;
+			case 3:
+				SectionOffset = FVector(-(InSize.X/2.f), InSize.X/2.f, InSize.X/2.f);
+				break;
+			default:
+				
+				break;
+			}
+
+			const FVector PBottomLeft = FVector(X * SectionSize.X , Y * SectionSize.Y , InHeightValues[NoiseIndex_BottomLeft]).RotateAngleAxis(SectionIndex * 90.f, FVector(1.f, 0.f, 0.f));
+			const FVector PBottomRight = FVector(X * SectionSize.X , (Y+1) * SectionSize.Y , InHeightValues[NoiseIndex_BottomRight]).RotateAngleAxis(SectionIndex * 90.f, FVector(1.f, 0.f, 0.f));
+			const FVector PTopRight = FVector((X + 1) * SectionSize.X , (Y + 1) * SectionSize.Y , InHeightValues[NoiseIndex_TopRight]).RotateAngleAxis(SectionIndex * 90.f, FVector(1.f, 0.f, 0.f));
+			const FVector PTopLeft = FVector((X+1) * SectionSize.X , Y * SectionSize.Y , InHeightValues[NoiseIndex_TopLeft]).RotateAngleAxis(SectionIndex * 90.f, FVector(1.f, 0.f, 0.f));
 			
-			InVertices[BottomLeftIndex] = PBottomLeft.RotateAngleAxis(SectionIndex * 90.f, FVector(1.f, 0.f, 0.f));
-			InVertices[BottomRightIndex] = PBottomRight.RotateAngleAxis(SectionIndex * 90.f, FVector(1.f, 0.f, 0.f));
-			InVertices[TopRightIndex] = PTopRight.RotateAngleAxis(SectionIndex * 90.f, FVector(1.f, 0.f, 0.f));
-			InVertices[TopLeftIndex] = PTopLeft.RotateAngleAxis(SectionIndex * 90.f, FVector(1.f, 0.f, 0.f));
+			InVertices[BottomLeftIndex] = FVector(PBottomLeft.X + SectionOffset.X, PBottomLeft.Y + SectionOffset.Y, PBottomLeft.Z + SectionOffset.Z);
+			InVertices[BottomRightIndex] = FVector(PBottomRight.X + SectionOffset.X, PBottomRight.Y + SectionOffset.Y, PBottomRight.Z + SectionOffset.Z);
+			InVertices[TopRightIndex] =FVector(PTopRight.X + SectionOffset.X, PTopRight.Y + SectionOffset.Y, PTopRight.Z + SectionOffset.Z); 
+			InVertices[TopLeftIndex] = FVector(PTopLeft.X + SectionOffset.X, PTopLeft.Y + SectionOffset.Y, PTopLeft.Z + SectionOffset.Z);
 
 			// Note that Unreal UV origin (0,0) is top left
 			InTexCoords[BottomLeftIndex] = FVector2D(static_cast<float>(X) / static_cast<float>(InLengthSections), static_cast<float>(Y) / static_cast<float>(InWidthSections));
