@@ -17,10 +17,7 @@ public:
 	AHeightFieldNoiseActor();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Procedural Parameters")
-	FVector Size = FVector(1000.0f, 1000.0f, 1000.0f);
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Procedural Parameters")
-	float SphereRadius = 1000.0f;
+	FVector Size = FVector(1000.0f, 1000.0f, 1000.0f); // Size.X is Radius of the sphere
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Procedural Parameters")
 	int32 LengthSections = 100;

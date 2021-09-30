@@ -130,7 +130,7 @@ void AHeightFieldNoiseActor::GenerateGrid(const int32 SectionIndex, TArray<FVect
 	const FVector2D SectionSize = SectionSZ;
 	int32 VertexIndex = 0;
 	int32 TriangleIndex = 0;
-	float SRadius = 1000.f;
+	float SRadius = InSize.X;
 
 	for (int32 X = 0; X < InLengthSections; X++)
 	{
