@@ -20,6 +20,9 @@ public:
 	FVector Size = FVector(1000.0f, 1000.0f, 1000.0f);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Procedural Parameters")
+	float SphereRadius = 1000.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Procedural Parameters")
 	int32 LengthSections = 100;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Procedural Parameters")

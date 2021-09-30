@@ -27,7 +27,7 @@ void AHeightFieldNoiseActor::PostLoad()
 
 void AHeightFieldNoiseActor::SetupMeshBuffers()
 {
-	const int32 NumberOfSides = 4; // create 4 mesh section TODO remove if not needed
+	
 	const int32 NumberOfPoints = (LengthSections + 1) * (WidthSections + 1);
 	const int32 VertexCount = LengthSections * WidthSections * 4; // 4x vertices per quad/section
 	const int32 TriangleCount = LengthSections * WidthSections * 2 * 3; // 2x3 vertex indexes per quad
@@ -81,8 +81,7 @@ void AHeightFieldNoiseActor::GenerateMesh()
 		return;
 	}
 
-	// SetupMeshBuffers();
-	// GeneratePoints();
+
 	// Generate six sides
 	for(int32 i = 0; i < 6; i++)
 	{
@@ -93,11 +92,7 @@ void AHeightFieldNoiseActor::GenerateMesh()
 		StaticProvider->CreateSectionFromComponents(0, i, 0, Positions, Triangles, Normals, TexCoords, EmptyColors, Tangents, ERuntimeMeshUpdateFrequency::Infrequent, false);
 		StaticProvider->SetupMaterialSlot(0, TEXT("CylinderMaterial"), Material);
 	}
-	//GenerateGrid(Positions, Triangles, Normals, Tangents, TexCoords, FVector2D(Size.X, Size.Y), LengthSections, WidthSections, HeightValues);
-
-	// const TArray<FColor> EmptyColors{};
-	// StaticProvider->CreateSectionFromComponents(0, 0, 0, Positions, Triangles, Normals, TexCoords, EmptyColors, Tangents, ERuntimeMeshUpdateFrequency::Infrequent, false);
-	// StaticProvider->SetupMaterialSlot(0, TEXT("CylinderMaterial"), Material);
+	
 }
 
 void AHeightFieldNoiseActor::GenerateGrid(const int32 SectionIndex, TArray<FVector>& InVertices, TArray<int32>& InTriangles, TArray<FVector>& InNormals, TArray<FRuntimeMeshTangent>& InTangents, TArray<FVector2D>& InTexCoords, const FVector InSize, const int32 InLengthSections, const int32 InWidthSections, const TArray<float>& InHeightValues)
@@ -135,6 +130,7 @@ void AHeightFieldNoiseActor::GenerateGrid(const int32 SectionIndex, TArray<FVect
 	const FVector2D SectionSize = SectionSZ;
 	int32 VertexIndex = 0;
 	int32 TriangleIndex = 0;
+	float SRadius = 1000.f;
 
 	for (int32 X = 0; X < InLengthSections; X++)
 	{
@@ -189,10 +185,12 @@ void AHeightFieldNoiseActor::GenerateGrid(const int32 SectionIndex, TArray<FVect
 			const FVector PTopRight = FVector((X + 1) * SectionSize.X , (Y + 1) * SectionSize.Y , InHeightValues[NoiseIndex_TopRight]).RotateAngleAxis(SideRotationAngle, SideRotationAxis);
 			const FVector PTopLeft = FVector((X+1) * SectionSize.X , Y * SectionSize.Y , InHeightValues[NoiseIndex_TopLeft]).RotateAngleAxis(SideRotationAngle, SideRotationAxis);
 			
-			InVertices[BottomLeftIndex] = FVector(PBottomLeft.X + SideOffset.X, PBottomLeft.Y + SideOffset.Y, PBottomLeft.Z + SideOffset.Z);
-			InVertices[BottomRightIndex] = FVector(PBottomRight.X + SideOffset.X, PBottomRight.Y + SideOffset.Y, PBottomRight.Z + SideOffset.Z);
-			InVertices[TopRightIndex] =FVector(PTopRight.X + SideOffset.X, PTopRight.Y + SideOffset.Y, PTopRight.Z + SideOffset.Z); 
-			InVertices[TopLeftIndex] = FVector(PTopLeft.X + SideOffset.X, PTopLeft.Y + SideOffset.Y, PTopLeft.Z + SideOffset.Z);
+			//Normalize then Magnitude=Radius
+			
+			InVertices[BottomLeftIndex] = FVector(PBottomLeft.X + SideOffset.X, PBottomLeft.Y + SideOffset.Y, PBottomLeft.Z + SideOffset.Z).GetSafeNormal() * SRadius;
+			InVertices[BottomRightIndex] = FVector(PBottomRight.X + SideOffset.X, PBottomRight.Y + SideOffset.Y, PBottomRight.Z + SideOffset.Z).GetSafeNormal() * SRadius;
+			InVertices[TopRightIndex] =FVector(PTopRight.X + SideOffset.X, PTopRight.Y + SideOffset.Y, PTopRight.Z + SideOffset.Z).GetSafeNormal() * SRadius; 
+			InVertices[TopLeftIndex] = FVector(PTopLeft.X + SideOffset.X, PTopLeft.Y + SideOffset.Y, PTopLeft.Z + SideOffset.Z).GetSafeNormal() * SRadius;
 
 			// Note that Unreal UV origin (0,0) is top left
 			InTexCoords[BottomLeftIndex] = FVector2D(static_cast<float>(X) / static_cast<float>(InLengthSections), static_cast<float>(Y) / static_cast<float>(InWidthSections));
