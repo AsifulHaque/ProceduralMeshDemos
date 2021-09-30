@@ -3,6 +3,7 @@
 // Example heightfield generated with noise
 
 #include "HeightFieldNoiseActor.h"
+#include "Math/UnrealMathUtility.h"
 #include "Providers/RuntimeMeshProviderStatic.h"
 
 AHeightFieldNoiseActor::AHeightFieldNoiseActor()
@@ -49,7 +50,7 @@ void AHeightFieldNoiseActor::SetupMeshBuffers()
 		Triangles.Empty();
 		Triangles.AddUninitialized(TriangleCount);
 	}
-
+	//TODO Remove Height values entirely.. Now replaced by Perlin3D
 	if (NumberOfPoints != HeightValues.Num())
 	{
 		HeightValues.Empty();
@@ -87,7 +88,7 @@ void AHeightFieldNoiseActor::GenerateMesh()
 	{
 		SetupMeshBuffers();
 		GeneratePoints();
-		GenerateGrid(i, Positions, Triangles, Normals, Tangents, TexCoords, Size, LengthSections, WidthSections, HeightValues);
+		GenerateGrid(HeightFactor, i, Positions, Triangles, Normals, Tangents, TexCoords, Size, LengthSections, WidthSections, HeightValues);
 		const TArray<FColor> EmptyColors{};
 		StaticProvider->CreateSectionFromComponents(0, i, 0, Positions, Triangles, Normals, TexCoords, EmptyColors, Tangents, ERuntimeMeshUpdateFrequency::Infrequent, false);
 		StaticProvider->SetupMaterialSlot(0, TEXT("CylinderMaterial"), Material);
@@ -95,11 +96,15 @@ void AHeightFieldNoiseActor::GenerateMesh()
 	
 }
 
-void AHeightFieldNoiseActor::GenerateGrid(const int32 SectionIndex, TArray<FVector>& InVertices, TArray<int32>& InTriangles, TArray<FVector>& InNormals, TArray<FRuntimeMeshTangent>& InTangents, TArray<FVector2D>& InTexCoords, const FVector InSize, const int32 InLengthSections, const int32 InWidthSections, const TArray<float>& InHeightValues)
+void AHeightFieldNoiseActor::GenerateGrid(const float HeightFactor, const int32 SectionIndex, TArray<FVector>& InVertices, TArray<int32>& InTriangles, TArray<FVector>& InNormals, TArray<FRuntimeMeshTangent>& InTangents, TArray<FVector2D>& InTexCoords, const FVector InSize, const int32 InLengthSections, const int32 InWidthSections, const TArray<float>& InHeightValues)
 {
 	// Note the coordinates are a bit weird here since I aligned it to the transform (X is forwards or "up", which Y is to the right)
 	// Should really fix this up and use standard X, Y coords then transform into object space?
 	
+
+	 		//################################################################//
+		//######################//VERTEX MACHINE//##########################//
+	 //################################################################//
 	//Size calc 
 	FVector2D SectionSZ;
 	switch (SectionIndex)
@@ -180,18 +185,31 @@ void AHeightFieldNoiseActor::GenerateGrid(const int32 SectionIndex, TArray<FVect
 				break;
 			}
 
-			const FVector PBottomLeft = FVector(X * SectionSize.X , Y * SectionSize.Y , InHeightValues[NoiseIndex_BottomLeft]).RotateAngleAxis(SideRotationAngle, SideRotationAxis);
-			const FVector PBottomRight = FVector(X * SectionSize.X , (Y+1) * SectionSize.Y , InHeightValues[NoiseIndex_BottomRight]).RotateAngleAxis(SideRotationAngle, SideRotationAxis);
-			const FVector PTopRight = FVector((X + 1) * SectionSize.X , (Y + 1) * SectionSize.Y , InHeightValues[NoiseIndex_TopRight]).RotateAngleAxis(SideRotationAngle, SideRotationAxis);
-			const FVector PTopLeft = FVector((X+1) * SectionSize.X , Y * SectionSize.Y , InHeightValues[NoiseIndex_TopLeft]).RotateAngleAxis(SideRotationAngle, SideRotationAxis);
+			//Calculate relative vertex position from SectionSize & then Rotate
+			FVector PBottomLeft = FVector(X * SectionSize.X , Y * SectionSize.Y , 0.f).RotateAngleAxis(SideRotationAngle, SideRotationAxis);
+			FVector PBottomRight = FVector(X * SectionSize.X , (Y+1) * SectionSize.Y , 0.f).RotateAngleAxis(SideRotationAngle, SideRotationAxis);
+			FVector PTopRight = FVector((X + 1) * SectionSize.X , (Y + 1) * SectionSize.Y , 0.f).RotateAngleAxis(SideRotationAngle, SideRotationAxis);
+			FVector PTopLeft = FVector((X+1) * SectionSize.X , Y * SectionSize.Y , 0.f).RotateAngleAxis(SideRotationAngle, SideRotationAxis);
+			//Normalize then multiply with Radius
+			FVector NBottomLeft = FVector(PBottomLeft.X + SideOffset.X, PBottomLeft.Y + SideOffset.Y, PBottomLeft.Z + SideOffset.Z).GetSafeNormal();
+			FVector NBottomRight = FVector(PBottomRight.X + SideOffset.X, PBottomRight.Y + SideOffset.Y, PBottomRight.Z + SideOffset.Z).GetSafeNormal();
+			FVector NTopRight = FVector(PTopRight.X + SideOffset.X, PTopRight.Y + SideOffset.Y, PTopRight.Z + SideOffset.Z).GetSafeNormal();
+			FVector NTopLeft = FVector(PTopLeft.X + SideOffset.X, PTopLeft.Y + SideOffset.Y, PTopLeft.Z + SideOffset.Z).GetSafeNormal();
+			//Apply Noise on final vertices
+			const FVector FBottomLeft = NBottomLeft * SRadius + NBottomLeft * HeightFactor * FMath::PerlinNoise3D(NBottomLeft);
+			const FVector FBottomRight = NBottomRight * SRadius + NBottomRight * HeightFactor * FMath::PerlinNoise3D(NBottomRight);
+			const FVector FTopRight = NTopRight * SRadius + NTopRight * HeightFactor * FMath::PerlinNoise3D(NTopRight);
+			const FVector FTopLeft = NTopLeft * SRadius + NTopLeft * HeightFactor * FMath::PerlinNoise3D(NTopLeft);
 			
-			//Normalize then Magnitude=Radius
-			
-			InVertices[BottomLeftIndex] = FVector(PBottomLeft.X + SideOffset.X, PBottomLeft.Y + SideOffset.Y, PBottomLeft.Z + SideOffset.Z).GetSafeNormal() * SRadius;
-			InVertices[BottomRightIndex] = FVector(PBottomRight.X + SideOffset.X, PBottomRight.Y + SideOffset.Y, PBottomRight.Z + SideOffset.Z).GetSafeNormal() * SRadius;
-			InVertices[TopRightIndex] =FVector(PTopRight.X + SideOffset.X, PTopRight.Y + SideOffset.Y, PTopRight.Z + SideOffset.Z).GetSafeNormal() * SRadius; 
-			InVertices[TopLeftIndex] = FVector(PTopLeft.X + SideOffset.X, PTopLeft.Y + SideOffset.Y, PTopLeft.Z + SideOffset.Z).GetSafeNormal() * SRadius;
+			//Pass the vertex to vertex buffer
+			InVertices[BottomLeftIndex] = FBottomLeft;
+			InVertices[BottomRightIndex] = FBottomRight;
+			InVertices[TopRightIndex] = FTopRight;
+			InVertices[TopLeftIndex] = FTopLeft;
 
+ 					//################################################################//
+				//######################//VERTEX MACHINE//##########################//
+			//################################################################//
 			// Note that Unreal UV origin (0,0) is top left
 			InTexCoords[BottomLeftIndex] = FVector2D(static_cast<float>(X) / static_cast<float>(InLengthSections), static_cast<float>(Y) / static_cast<float>(InWidthSections));
 			InTexCoords[BottomRightIndex] = FVector2D(static_cast<float>(X) / static_cast<float>(InLengthSections), static_cast<float>(Y + 1) / static_cast<float>(InWidthSections));
