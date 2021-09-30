@@ -29,7 +29,7 @@ void AHeightFieldNoiseActor::PostLoad()
 void AHeightFieldNoiseActor::SetupMeshBuffers()
 {
 	
-	const int32 NumberOfPoints = (LengthSections + 1) * (WidthSections + 1);
+	// TODO Remove on Next build: //const int32 NumberOfPoints = (LengthSections + 1) * (WidthSections + 1);
 	const int32 VertexCount = LengthSections * WidthSections * 4; // 4x vertices per quad/section
 	const int32 TriangleCount = LengthSections * WidthSections * 2 * 3; // 2x3 vertex indexes per quad
 
@@ -50,26 +50,27 @@ void AHeightFieldNoiseActor::SetupMeshBuffers()
 		Triangles.Empty();
 		Triangles.AddUninitialized(TriangleCount);
 	}
-	//TODO Remove Height values entirely.. Now replaced by Perlin3D
-	if (NumberOfPoints != HeightValues.Num())
-	{
-		HeightValues.Empty();
-		HeightValues.AddUninitialized(NumberOfPoints);
-	}
+	// //TODO Remove Height values entirely.. Now replaced by Perlin3D
+	// if (NumberOfPoints != HeightValues.Num())
+	// {
+	// 	HeightValues.Empty();
+	// 	HeightValues.AddUninitialized(NumberOfPoints);
+	// }
 }
 
 void AHeightFieldNoiseActor::GeneratePoints()
 {
 	RngStream.Initialize(RandomSeed);
 
+	// TODO Remove on Next build
 	// Setup example height data
-	const int32 NumberOfPoints = (LengthSections + 1) * (WidthSections + 1);
+	// const int32 NumberOfPoints = (LengthSections + 1) * (WidthSections + 1);
 
-	// Fill height data with random values
-	for (int32 i = 0; i < NumberOfPoints; i++)
-	{
-		HeightValues[i] = RngStream.FRandRange(0, HeightFactor);
-	}
+	// // Fill height data with random values
+	// for (int32 i = 0; i < NumberOfPoints; i++)
+	// {
+	// 	HeightValues[i] = RngStream.FRandRange(0, HeightFactor);
+	// }
 }
 
 void AHeightFieldNoiseActor::GenerateMesh()
@@ -88,7 +89,7 @@ void AHeightFieldNoiseActor::GenerateMesh()
 	{
 		SetupMeshBuffers();
 		GeneratePoints();
-		GenerateGrid(NoiseInScale, HeightFactor, i, Positions, Triangles, Normals, Tangents, TexCoords, Size, LengthSections, WidthSections, HeightValues);
+		GenerateGrid(NoiseInScaleA, HeightFactorA, NoiseInScaleB, HeightFactorB, i, Positions, Triangles, Normals, Tangents, TexCoords, Size, LengthSections, WidthSections, HeightValues);
 		const TArray<FColor> EmptyColors{};
 		StaticProvider->CreateSectionFromComponents(0, i, 0, Positions, Triangles, Normals, TexCoords, EmptyColors, Tangents, ERuntimeMeshUpdateFrequency::Infrequent, false);
 		StaticProvider->SetupMaterialSlot(0, TEXT("CylinderMaterial"), Material);
@@ -96,7 +97,7 @@ void AHeightFieldNoiseActor::GenerateMesh()
 	
 }
 
-void AHeightFieldNoiseActor::GenerateGrid(const float NoiseInScale, const float HeightFactor, const int32 SectionIndex, TArray<FVector>& InVertices, TArray<int32>& InTriangles, TArray<FVector>& InNormals, TArray<FRuntimeMeshTangent>& InTangents, TArray<FVector2D>& InTexCoords, const FVector InSize, const int32 InLengthSections, const int32 InWidthSections, const TArray<float>& InHeightValues)
+void AHeightFieldNoiseActor::GenerateGrid(const float NoiseInScaleA, const float HeightFactorA,const float NoiseInScaleB, const float HeightFactorB, const int32 SectionIndex, TArray<FVector>& InVertices, TArray<int32>& InTriangles, TArray<FVector>& InNormals, TArray<FRuntimeMeshTangent>& InTangents, TArray<FVector2D>& InTexCoords, const FVector InSize, const int32 InLengthSections, const int32 InWidthSections, const TArray<float>& InHeightValues)
 {
 	// Note the coordinates are a bit weird here since I aligned it to the transform (X is forwards or "up", which Y is to the right)
 	// Should really fix this up and use standard X, Y coords then transform into object space?
@@ -190,16 +191,16 @@ void AHeightFieldNoiseActor::GenerateGrid(const float NoiseInScale, const float 
 			FVector PBottomRight = FVector(X * SectionSize.X , (Y+1) * SectionSize.Y , 0.f).RotateAngleAxis(SideRotationAngle, SideRotationAxis);
 			FVector PTopRight = FVector((X + 1) * SectionSize.X , (Y + 1) * SectionSize.Y , 0.f).RotateAngleAxis(SideRotationAngle, SideRotationAxis);
 			FVector PTopLeft = FVector((X+1) * SectionSize.X , Y * SectionSize.Y , 0.f).RotateAngleAxis(SideRotationAngle, SideRotationAxis);
-			//Normalize then multiply with Radius
+			//Normalize 
 			FVector NBottomLeft = FVector(PBottomLeft.X + SideOffset.X, PBottomLeft.Y + SideOffset.Y, PBottomLeft.Z + SideOffset.Z).GetSafeNormal();
 			FVector NBottomRight = FVector(PBottomRight.X + SideOffset.X, PBottomRight.Y + SideOffset.Y, PBottomRight.Z + SideOffset.Z).GetSafeNormal();
 			FVector NTopRight = FVector(PTopRight.X + SideOffset.X, PTopRight.Y + SideOffset.Y, PTopRight.Z + SideOffset.Z).GetSafeNormal();
 			FVector NTopLeft = FVector(PTopLeft.X + SideOffset.X, PTopLeft.Y + SideOffset.Y, PTopLeft.Z + SideOffset.Z).GetSafeNormal();
-			//Apply Noise on final vertices
-			const FVector FBottomLeft = NBottomLeft * SRadius + NBottomLeft * HeightFactor * FMath::PerlinNoise3D(NBottomLeft * NoiseInScale);
-			const FVector FBottomRight = NBottomRight * SRadius + NBottomRight * HeightFactor * FMath::PerlinNoise3D(NBottomRight * NoiseInScale);
-			const FVector FTopRight = NTopRight * SRadius + NTopRight * HeightFactor * FMath::PerlinNoise3D(NTopRight * NoiseInScale);
-			const FVector FTopLeft = NTopLeft * SRadius + NTopLeft * HeightFactor * FMath::PerlinNoise3D(NTopLeft * NoiseInScale);
+			//Position................................Radius + Add...............................NOISE LAYER1 ....................................+.......................... NOISE LAYER2 .........................
+			const FVector FBottomLeft = NBottomLeft * SRadius + NBottomLeft * HeightFactorA * FMath::PerlinNoise3D(NBottomLeft * NoiseInScaleA) + NBottomLeft * HeightFactorB * FMath::PerlinNoise3D(NBottomLeft * NoiseInScaleB);
+			const FVector FBottomRight = NBottomRight * SRadius + NBottomRight * HeightFactorA * FMath::PerlinNoise3D(NBottomRight * NoiseInScaleA) + NBottomRight * HeightFactorB * FMath::PerlinNoise3D(NBottomRight * NoiseInScaleB);
+			const FVector FTopRight = NTopRight * SRadius + NTopRight * HeightFactorA * FMath::PerlinNoise3D(NTopRight * NoiseInScaleA) + NTopRight * HeightFactorB * FMath::PerlinNoise3D(NTopRight * NoiseInScaleB);
+			const FVector FTopLeft = NTopLeft * SRadius + NTopLeft * HeightFactorA * FMath::PerlinNoise3D(NTopLeft * NoiseInScaleA) + NTopLeft * HeightFactorB * FMath::PerlinNoise3D(NTopLeft * NoiseInScaleB);
 			
 			//Pass the vertex to vertex buffer
 			InVertices[BottomLeftIndex] = FBottomLeft;
