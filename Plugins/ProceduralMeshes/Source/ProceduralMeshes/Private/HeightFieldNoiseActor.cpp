@@ -88,7 +88,7 @@ void AHeightFieldNoiseActor::GenerateMesh()
 	{
 		SetupMeshBuffers();
 		GeneratePoints();
-		GenerateGrid(HeightFactor, i, Positions, Triangles, Normals, Tangents, TexCoords, Size, LengthSections, WidthSections, HeightValues);
+		GenerateGrid(NoiseInScale, HeightFactor, i, Positions, Triangles, Normals, Tangents, TexCoords, Size, LengthSections, WidthSections, HeightValues);
 		const TArray<FColor> EmptyColors{};
 		StaticProvider->CreateSectionFromComponents(0, i, 0, Positions, Triangles, Normals, TexCoords, EmptyColors, Tangents, ERuntimeMeshUpdateFrequency::Infrequent, false);
 		StaticProvider->SetupMaterialSlot(0, TEXT("CylinderMaterial"), Material);
@@ -96,7 +96,7 @@ void AHeightFieldNoiseActor::GenerateMesh()
 	
 }
 
-void AHeightFieldNoiseActor::GenerateGrid(const float HeightFactor, const int32 SectionIndex, TArray<FVector>& InVertices, TArray<int32>& InTriangles, TArray<FVector>& InNormals, TArray<FRuntimeMeshTangent>& InTangents, TArray<FVector2D>& InTexCoords, const FVector InSize, const int32 InLengthSections, const int32 InWidthSections, const TArray<float>& InHeightValues)
+void AHeightFieldNoiseActor::GenerateGrid(const float NoiseInScale, const float HeightFactor, const int32 SectionIndex, TArray<FVector>& InVertices, TArray<int32>& InTriangles, TArray<FVector>& InNormals, TArray<FRuntimeMeshTangent>& InTangents, TArray<FVector2D>& InTexCoords, const FVector InSize, const int32 InLengthSections, const int32 InWidthSections, const TArray<float>& InHeightValues)
 {
 	// Note the coordinates are a bit weird here since I aligned it to the transform (X is forwards or "up", which Y is to the right)
 	// Should really fix this up and use standard X, Y coords then transform into object space?
@@ -196,10 +196,10 @@ void AHeightFieldNoiseActor::GenerateGrid(const float HeightFactor, const int32 
 			FVector NTopRight = FVector(PTopRight.X + SideOffset.X, PTopRight.Y + SideOffset.Y, PTopRight.Z + SideOffset.Z).GetSafeNormal();
 			FVector NTopLeft = FVector(PTopLeft.X + SideOffset.X, PTopLeft.Y + SideOffset.Y, PTopLeft.Z + SideOffset.Z).GetSafeNormal();
 			//Apply Noise on final vertices
-			const FVector FBottomLeft = NBottomLeft * SRadius + NBottomLeft * HeightFactor * FMath::PerlinNoise3D(NBottomLeft);
-			const FVector FBottomRight = NBottomRight * SRadius + NBottomRight * HeightFactor * FMath::PerlinNoise3D(NBottomRight);
-			const FVector FTopRight = NTopRight * SRadius + NTopRight * HeightFactor * FMath::PerlinNoise3D(NTopRight);
-			const FVector FTopLeft = NTopLeft * SRadius + NTopLeft * HeightFactor * FMath::PerlinNoise3D(NTopLeft);
+			const FVector FBottomLeft = NBottomLeft * SRadius + NBottomLeft * HeightFactor * FMath::PerlinNoise3D(NBottomLeft * NoiseInScale);
+			const FVector FBottomRight = NBottomRight * SRadius + NBottomRight * HeightFactor * FMath::PerlinNoise3D(NBottomRight * NoiseInScale);
+			const FVector FTopRight = NTopRight * SRadius + NTopRight * HeightFactor * FMath::PerlinNoise3D(NTopRight * NoiseInScale);
+			const FVector FTopLeft = NTopLeft * SRadius + NTopLeft * HeightFactor * FMath::PerlinNoise3D(NTopLeft * NoiseInScale);
 			
 			//Pass the vertex to vertex buffer
 			InVertices[BottomLeftIndex] = FBottomLeft;
