@@ -89,7 +89,7 @@ void AHeightFieldNoiseActor::GenerateMesh()
 	{
 		SetupMeshBuffers();
 		GeneratePoints();
-		GenerateGrid(NoiseInScaleA, HeightFactorA, NoiseInScaleB, HeightFactorB, i, Positions, Triangles, Normals, Tangents, TexCoords, Size, LengthSections, WidthSections, HeightValues);
+		GenerateGrid(MinRadiusA, MinRadiusB, NoiseInScaleA, HeightFactorA, NoiseInScaleB, HeightFactorB, i, Positions, Triangles, Normals, Tangents, TexCoords, Size, LengthSections, WidthSections, HeightValues);
 		const TArray<FColor> EmptyColors{};
 		StaticProvider->CreateSectionFromComponents(0, i, 0, Positions, Triangles, Normals, TexCoords, EmptyColors, Tangents, ERuntimeMeshUpdateFrequency::Infrequent, false);
 		StaticProvider->SetupMaterialSlot(0, TEXT("CylinderMaterial"), Material);
@@ -97,7 +97,7 @@ void AHeightFieldNoiseActor::GenerateMesh()
 	
 }
 
-void AHeightFieldNoiseActor::GenerateGrid(const float NoiseInScaleA, const float HeightFactorA,const float NoiseInScaleB, const float HeightFactorB, const int32 SectionIndex, TArray<FVector>& InVertices, TArray<int32>& InTriangles, TArray<FVector>& InNormals, TArray<FRuntimeMeshTangent>& InTangents, TArray<FVector2D>& InTexCoords, const FVector InSize, const int32 InLengthSections, const int32 InWidthSections, const TArray<float>& InHeightValues)
+void AHeightFieldNoiseActor::GenerateGrid(const bool MinRadiusA, const bool MinRadiusB, const float NoiseInScaleA, const float HeightFactorA,const float NoiseInScaleB, const float HeightFactorB, const int32 SectionIndex, TArray<FVector>& InVertices, TArray<int32>& InTriangles, TArray<FVector>& InNormals, TArray<FRuntimeMeshTangent>& InTangents, TArray<FVector2D>& InTexCoords, const FVector InSize, const int32 InLengthSections, const int32 InWidthSections, const TArray<float>& InHeightValues)
 {
 	// Note the coordinates are a bit weird here since I aligned it to the transform (X is forwards or "up", which Y is to the right)
 	// Should really fix this up and use standard X, Y coords then transform into object space?
@@ -196,11 +196,13 @@ void AHeightFieldNoiseActor::GenerateGrid(const float NoiseInScaleA, const float
 			FVector NBottomRight = FVector(PBottomRight.X + SideOffset.X, PBottomRight.Y + SideOffset.Y, PBottomRight.Z + SideOffset.Z).GetSafeNormal();
 			FVector NTopRight = FVector(PTopRight.X + SideOffset.X, PTopRight.Y + SideOffset.Y, PTopRight.Z + SideOffset.Z).GetSafeNormal();
 			FVector NTopLeft = FVector(PTopLeft.X + SideOffset.X, PTopLeft.Y + SideOffset.Y, PTopLeft.Z + SideOffset.Z).GetSafeNormal();
-			//Position................................Radius + Add...............................NOISE LAYER1 ....................................+.......................... NOISE LAYER2 .........................
-			const FVector FBottomLeft = NBottomLeft * SRadius + NBottomLeft * HeightFactorA * FMath::PerlinNoise3D(NBottomLeft * NoiseInScaleA) + NBottomLeft * HeightFactorB * FMath::PerlinNoise3D(NBottomLeft * NoiseInScaleB);
-			const FVector FBottomRight = NBottomRight * SRadius + NBottomRight * HeightFactorA * FMath::PerlinNoise3D(NBottomRight * NoiseInScaleA) + NBottomRight * HeightFactorB * FMath::PerlinNoise3D(NBottomRight * NoiseInScaleB);
-			const FVector FTopRight = NTopRight * SRadius + NTopRight * HeightFactorA * FMath::PerlinNoise3D(NTopRight * NoiseInScaleA) + NTopRight * HeightFactorB * FMath::PerlinNoise3D(NTopRight * NoiseInScaleB);
-			const FVector FTopLeft = NTopLeft * SRadius + NTopLeft * HeightFactorA * FMath::PerlinNoise3D(NTopLeft * NoiseInScaleA) + NTopLeft * HeightFactorB * FMath::PerlinNoise3D(NTopLeft * NoiseInScaleB);
+
+			//##################################################################################################Noise Buffer Here#####################
+			//.............Position...=..Position..X..Radius.. + .................................NOISE LAYER1 ...............................................Minimum Radius Clamp Check.....+......... NOISE LAYER2 .........................
+			const FVector FBottomLeft = NBottomLeft * SRadius + NBottomLeft * HeightFactorA * FMath::Clamp(FMath::PerlinNoise3D(NBottomLeft * NoiseInScaleA), (MinRadiusA)? 0.f : -1.f, 1.f) + NBottomLeft * HeightFactorB * FMath::Clamp(FMath::PerlinNoise3D(NBottomLeft * NoiseInScaleB), (MinRadiusB)? 0.f : -1.f, 1.f) * FMath::Clamp(FMath::PerlinNoise3D(NBottomLeft * NoiseInScaleA), (MinRadiusA)? 0.f : -1.f, 1.f);
+			const FVector FBottomRight = NBottomRight * SRadius + NBottomRight * HeightFactorA * FMath::Clamp(FMath::PerlinNoise3D(NBottomRight * NoiseInScaleA), (MinRadiusA)? 0.f : -1.f, 1.f) + NBottomRight * HeightFactorB * FMath::Clamp(FMath::PerlinNoise3D(NBottomRight * NoiseInScaleB), (MinRadiusB)? 0.f : -1.f, 1.f) * FMath::Clamp(FMath::PerlinNoise3D(NBottomRight * NoiseInScaleA), (MinRadiusA)? 0.f : -1.f, 1.f);
+			const FVector FTopRight = NTopRight * SRadius + NTopRight * HeightFactorA * FMath::Clamp(FMath::PerlinNoise3D(NTopRight * NoiseInScaleA), (MinRadiusA)? 0.f : -1.f, 1.f) + NTopRight * HeightFactorB * FMath::Clamp(FMath::PerlinNoise3D(NTopRight * NoiseInScaleB), (MinRadiusB)? 0.f : -1.f, 1.f) * FMath::Clamp(FMath::PerlinNoise3D(NTopRight * NoiseInScaleA), (MinRadiusA)? 0.f : -1.f, 1.f);
+			const FVector FTopLeft = NTopLeft * SRadius + NTopLeft * HeightFactorA * FMath::Clamp(FMath::PerlinNoise3D(NTopLeft * NoiseInScaleA), (MinRadiusA)? 0.f : -1.f, 1.f) + NTopLeft * HeightFactorB * FMath::Clamp(FMath::PerlinNoise3D(NTopLeft * NoiseInScaleB), (MinRadiusB)? 0.f : -1.f, 1.f) * FMath::Clamp(FMath::PerlinNoise3D(NTopLeft * NoiseInScaleA), (MinRadiusA)? 0.f : -1.f, 1.f);
 			
 			//Pass the vertex to vertex buffer
 			InVertices[BottomLeftIndex] = FBottomLeft;

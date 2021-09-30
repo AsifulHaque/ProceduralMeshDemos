@@ -29,11 +29,15 @@ public:
 	float HeightFactorA = 20.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Procedural Parameters | Noise Layer A")
 	float NoiseInScaleA = 1.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Procedural Parameters | Noise Layer A")
+	bool MinRadiusA = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Procedural Parameters | Noise Layer B")
 	float HeightFactorB = 2.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Procedural Parameters | Noise Layer B")
 	float NoiseInScaleB = 10.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Procedural Parameters | Noise Layer B")
+	bool MinRadiusB = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Procedural Parameters")
 	int32 RandomSeed = 1238;
@@ -51,7 +55,7 @@ protected:
 private:
 	void GenerateMesh();
 	void GeneratePoints();
-	static void GenerateGrid(const float NoiseInScaleA, const float HeightFactorA,const float NoiseInScaleB, const float HeightFactorB, const int32 SectionIndex, TArray<FVector>& InVertices, TArray<int32>& InTriangles, TArray<FVector>& InNormals, TArray<FRuntimeMeshTangent>& InTangents, TArray<FVector2D>& InTexCoords, const FVector InSize, const int32 InLengthSections, const int32 InWidthSections, const TArray<float>& InHeightValues);
+	static void GenerateGrid(const bool MinRadiusA, const bool MinRadiusB,  const float NoiseInScaleA, const float HeightFactorA,const float NoiseInScaleB, const float HeightFactorB, const int32 SectionIndex, TArray<FVector>& InVertices, TArray<int32>& InTriangles, TArray<FVector>& InNormals, TArray<FRuntimeMeshTangent>& InTangents, TArray<FVector2D>& InTexCoords, const FVector InSize, const int32 InLengthSections, const int32 InWidthSections, const TArray<float>& InHeightValues);
 
 	UPROPERTY(Transient)
 	FRandomStream RngStream;
