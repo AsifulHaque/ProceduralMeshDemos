@@ -50,28 +50,9 @@ void AHeightFieldNoiseActor::SetupMeshBuffers()
 		Triangles.Empty();
 		Triangles.AddUninitialized(TriangleCount);
 	}
-	// //TODO Remove Height values entirely.. Now replaced by Perlin3D
-	// if (NumberOfPoints != HeightValues.Num())
-	// {
-	// 	HeightValues.Empty();
-	// 	HeightValues.AddUninitialized(NumberOfPoints);
-	// }
+	
 }
 
-void AHeightFieldNoiseActor::GeneratePoints()
-{
-	RngStream.Initialize(RandomSeed);
-
-	// TODO Remove on Next build
-	// Setup example height data
-	// const int32 NumberOfPoints = (LengthSections + 1) * (WidthSections + 1);
-
-	// // Fill height data with random values
-	// for (int32 i = 0; i < NumberOfPoints; i++)
-	// {
-	// 	HeightValues[i] = RngStream.FRandRange(0, HeightFactor);
-	// }
-}
 
 void AHeightFieldNoiseActor::GenerateMesh()
 {
@@ -88,8 +69,7 @@ void AHeightFieldNoiseActor::GenerateMesh()
 	for(int32 i = 0; i < 6; i++)
 	{
 		SetupMeshBuffers();
-		GeneratePoints();
-		GenerateGrid(MinRadiusA, MinRadiusB, NoiseFrequencyA, AmplitudeA, NoiseFrequencyB, AmplitudeB, i, Positions, Triangles, Normals, Tangents, TexCoords, Size, LengthSections, WidthSections, HeightValues);
+		GenerateGrid(OctaveInitialFrequency, NoiseIntialHeight, NumberOfOctaves, Lacunarity, Persistance, MinRadius, i, Positions, Triangles, Normals, Tangents, TexCoords, Size, LengthSections, WidthSections);
 		const TArray<FColor> EmptyColors{};
 		StaticProvider->CreateSectionFromComponents(0, i, 0, Positions, Triangles, Normals, TexCoords, EmptyColors, Tangents, ERuntimeMeshUpdateFrequency::Infrequent, false);
 		StaticProvider->SetupMaterialSlot(0, TEXT("CylinderMaterial"), Material);
@@ -97,7 +77,7 @@ void AHeightFieldNoiseActor::GenerateMesh()
 	
 }
 
-void AHeightFieldNoiseActor::GenerateGrid(const bool MinRadiusA, const bool MinRadiusB, const float NoiseFrequencyA, const float AmplitudeA,const float NoiseFrequencyB, const float AmplitudeB, const int32 SectionIndex, TArray<FVector>& InVertices, TArray<int32>& InTriangles, TArray<FVector>& InNormals, TArray<FRuntimeMeshTangent>& InTangents, TArray<FVector2D>& InTexCoords, const FVector InSize, const int32 InLengthSections, const int32 InWidthSections, const TArray<float>& InHeightValues)
+void AHeightFieldNoiseActor::GenerateGrid(float OctaveInitialFrequency, const float NoiseIntialHeight, const int32 NumberOfOctaves, const float Lacunarity, const float Persistance, const bool MinRadius, const int32 SectionIndex, TArray<FVector>& InVertices, TArray<int32>& InTriangles, TArray<FVector>& InNormals, TArray<FRuntimeMeshTangent>& InTangents, TArray<FVector2D>& InTexCoords, const FVector InSize, const int32 InLengthSections, const int32 InWidthSections)
 {
 	// Note the coordinates are a bit weird here since I aligned it to the transform (X is forwards or "up", which Y is to the right)
 	// Should really fix this up and use standard X, Y coords then transform into object space?
@@ -186,23 +166,43 @@ void AHeightFieldNoiseActor::GenerateGrid(const bool MinRadiusA, const bool MinR
 				break;
 			}
 
-			//Calculate relative vertex position from SectionSize & then Rotate
+			//Calculate relative vertex position from SectionSize & then => Rotate
 			FVector PBottomLeft = FVector(X * SectionSize.X , Y * SectionSize.Y , 0.f).RotateAngleAxis(SideRotationAngle, SideRotationAxis);
 			FVector PBottomRight = FVector(X * SectionSize.X , (Y+1) * SectionSize.Y , 0.f).RotateAngleAxis(SideRotationAngle, SideRotationAxis);
 			FVector PTopRight = FVector((X + 1) * SectionSize.X , (Y + 1) * SectionSize.Y , 0.f).RotateAngleAxis(SideRotationAngle, SideRotationAxis);
 			FVector PTopLeft = FVector((X+1) * SectionSize.X , Y * SectionSize.Y , 0.f).RotateAngleAxis(SideRotationAngle, SideRotationAxis);
-			//Normalize 
+			//Normalize , then => multiply with Radius
 			FVector NBottomLeft = FVector(PBottomLeft.X + SideOffset.X, PBottomLeft.Y + SideOffset.Y, PBottomLeft.Z + SideOffset.Z).GetSafeNormal();
 			FVector NBottomRight = FVector(PBottomRight.X + SideOffset.X, PBottomRight.Y + SideOffset.Y, PBottomRight.Z + SideOffset.Z).GetSafeNormal();
 			FVector NTopRight = FVector(PTopRight.X + SideOffset.X, PTopRight.Y + SideOffset.Y, PTopRight.Z + SideOffset.Z).GetSafeNormal();
 			FVector NTopLeft = FVector(PTopLeft.X + SideOffset.X, PTopLeft.Y + SideOffset.Y, PTopLeft.Z + SideOffset.Z).GetSafeNormal();
 
 			//##################################################################################################Noise Buffer Here#####################
-			//.............Position...=..Position..X..Radius.. + .................................NOISE LAYER1 ...............................................Minimum Radius Clamp Check.....+......... NOISE LAYER2 .........................
-			const FVector FBottomLeft = NBottomLeft * SRadius + NBottomLeft * AmplitudeA * FMath::Clamp(FMath::PerlinNoise3D(NBottomLeft * NoiseFrequencyA), (MinRadiusA)? 0.f : -1.f, 1.f) + NBottomLeft * AmplitudeB * FMath::Clamp(FMath::PerlinNoise3D(NBottomLeft * NoiseFrequencyB), (MinRadiusB)? 0.f : -1.f, 1.f) * FMath::Clamp(FMath::PerlinNoise3D(NBottomLeft * NoiseFrequencyA), (MinRadiusA)? 0.f : -1.f, 1.f);
-			const FVector FBottomRight = NBottomRight * SRadius + NBottomRight * AmplitudeA * FMath::Clamp(FMath::PerlinNoise3D(NBottomRight * NoiseFrequencyA), (MinRadiusA)? 0.f : -1.f, 1.f) + NBottomRight * AmplitudeB * FMath::Clamp(FMath::PerlinNoise3D(NBottomRight * NoiseFrequencyB), (MinRadiusB)? 0.f : -1.f, 1.f) * FMath::Clamp(FMath::PerlinNoise3D(NBottomRight * NoiseFrequencyA), (MinRadiusA)? 0.f : -1.f, 1.f);
-			const FVector FTopRight = NTopRight * SRadius + NTopRight * AmplitudeA * FMath::Clamp(FMath::PerlinNoise3D(NTopRight * NoiseFrequencyA), (MinRadiusA)? 0.f : -1.f, 1.f) + NTopRight * AmplitudeB * FMath::Clamp(FMath::PerlinNoise3D(NTopRight * NoiseFrequencyB), (MinRadiusB)? 0.f : -1.f, 1.f) * FMath::Clamp(FMath::PerlinNoise3D(NTopRight * NoiseFrequencyA), (MinRadiusA)? 0.f : -1.f, 1.f);
-			const FVector FTopLeft = NTopLeft * SRadius + NTopLeft * AmplitudeA * FMath::Clamp(FMath::PerlinNoise3D(NTopLeft * NoiseFrequencyA), (MinRadiusA)? 0.f : -1.f, 1.f) + NTopLeft * AmplitudeB * FMath::Clamp(FMath::PerlinNoise3D(NTopLeft * NoiseFrequencyB), (MinRadiusB)? 0.f : -1.f, 1.f) * FMath::Clamp(FMath::PerlinNoise3D(NTopLeft * NoiseFrequencyA), (MinRadiusA)? 0.f : -1.f, 1.f);
+			//Noise Vertex buffer
+			FVector EBottomLeft = FVector(0.f, 0.f, 0.f);
+			FVector EBottomRight = FVector(0.f, 0.f, 0.f);
+			FVector ETopRight = FVector(0.f, 0.f, 0.f);
+			FVector ETopLeft = FVector(0.f, 0.f, 0.f);
+			//for number of NoiseOctaves=i
+			//EV = NV * Noise(i) * if i > 0 => Mask(i-1)
+			for (int32 i=0; i < NumberOfOctaves; i++)
+			{
+				float frequency = OctaveInitialFrequency * FMath::Pow(Lacunarity, i);
+				float prevFrequency = (i==0) ? frequency : (OctaveInitialFrequency * FMath::Pow(Lacunarity, (i-1)));
+				float amplitude = NoiseIntialHeight * FMath::Pow(Persistance, i );
+				//Sphere Surface Position
+				//Position  += Safe Normal: Unit length Vector X Amplitude X ------------------------------NOISE-------------------------------------------------------   X Previous Layer mask for Octaves > 1.....................................................X.............First layer mask 
+				EBottomLeft += NBottomLeft * amplitude * (FMath::Clamp(FMath::PerlinNoise3D(NBottomLeft  * frequency), (MinRadius)? 0.f : -1.f, 1.f)) * ((i==0) ? 1 : FMath::Clamp(FMath::PerlinNoise3D(NBottomLeft * prevFrequency), (MinRadius)? 0.f : -1.f, 1.f)) * ((i==0) ? 1 : FMath::Clamp(FMath::PerlinNoise3D(NBottomLeft * OctaveInitialFrequency), (MinRadius)? 0.f : -1.f, 1.f));
+				EBottomRight += NBottomRight * amplitude * (FMath::Clamp(FMath::PerlinNoise3D(NBottomRight  * frequency), (MinRadius)? 0.f : -1.f, 1.f)) * ((i==0) ? 1 : FMath::Clamp(FMath::PerlinNoise3D(NBottomRight * prevFrequency), (MinRadius)? 0.f : -1.f, 1.f)) * ((i==0) ? 1 : FMath::Clamp(FMath::PerlinNoise3D(NBottomRight * OctaveInitialFrequency), (MinRadius)? 0.f : -1.f, 1.f));
+				ETopRight += NTopRight * amplitude * (FMath::Clamp(FMath::PerlinNoise3D(NTopRight * frequency), (MinRadius)? 0.f : -1.f, 1.f)) * ((i==0) ? 1 : FMath::Clamp(FMath::PerlinNoise3D(NTopRight * prevFrequency), (MinRadius)? 0.f : -1.f, 1.f)) * ((i==0) ? 1 : FMath::Clamp(FMath::PerlinNoise3D(NTopRight * OctaveInitialFrequency), (MinRadius)? 0.f : -1.f, 1.f));
+				ETopLeft += NTopLeft * amplitude * (FMath::Clamp(FMath::PerlinNoise3D(NTopLeft  * frequency), (MinRadius)? 0.f : -1.f, 1.f)) * ((i==0) ? 1 : FMath::Clamp(FMath::PerlinNoise3D(NTopLeft * prevFrequency), (MinRadius)? 0.f : -1.f, 1.f)) * ((i==0) ? 1 : FMath::Clamp(FMath::PerlinNoise3D(NTopLeft * OctaveInitialFrequency), (MinRadius)? 0.f : -1.f, 1.f));
+			
+			}			
+			//Finalize vertex for sending to vertex buffer
+			const FVector FBottomLeft = NBottomLeft *  SRadius + EBottomLeft;
+			const FVector FBottomRight = NBottomRight *  SRadius + EBottomRight;
+			const FVector FTopRight = NTopRight *  SRadius + ETopRight;
+			const FVector FTopLeft = NTopLeft *  SRadius + ETopLeft;
 			
 			//Pass the vertex to vertex buffer
 			InVertices[BottomLeftIndex] = FBottomLeft;

@@ -25,22 +25,27 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Procedural Parameters")
 	int32 WidthSections = 100;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Procedural Parameters | Noise Layer A")
-	float AmplitudeA = 20.f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Procedural Parameters | Noise Layer A")
-	float NoiseFrequencyA = 1.f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Procedural Parameters | Noise Layer A")
-	bool MinRadiusA = true;
+	// Number of Noise Octaves to apply
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Procedural Parameters | Noise Octaves")
+	int32 NumberOfOctaves = 2;
+	// Frequency for the first Octave
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Procedural Parameters | Noise Octaves")
+	float OctaveInitialFrequency = 1.f;
+	// Exponential Rate of increase of Frequency; Controls the Frequency exponentially, Frequency == Intial Frequency, when Lacunariy = 1
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Procedural Parameters | Noise Octaves")
+	float Lacunarity = 1.f; 
+	// Height for the first Octave
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Procedural Parameters | Noise Octaves")
+	float NoiseIntialHeight = 100.f; 
+	// Decreases the Amplitude gradually with each octave
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Procedural Parameters | Noise Octaves")
+	float Persistance = 1.f; 
+	// Clamp everything to a minimum Radius
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Procedural Parameters | Noise Octaves")
+	bool MinRadius = true; 
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Procedural Parameters | Noise Layer B")
-	float AmplitudeB = 2.f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Procedural Parameters | Noise Layer B")
-	float NoiseFrequencyB = 10.f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Procedural Parameters | Noise Layer B")
-	bool MinRadiusB = true;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Procedural Parameters")
-	int32 RandomSeed = 1238;
+	// UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Procedural Parameters")
+	// int32 RandomSeed = 1238;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Procedural Parameters")
 	UMaterialInterface* Material;
@@ -54,8 +59,7 @@ protected:
 
 private:
 	void GenerateMesh();
-	void GeneratePoints();
-	static void GenerateGrid(const bool MinRadiusA, const bool MinRadiusB,  const float NoiseFrequencyA, const float AmplitudeA,const float NoiseFrequencyB, const float AmplitudeB, const int32 SectionIndex, TArray<FVector>& InVertices, TArray<int32>& InTriangles, TArray<FVector>& InNormals, TArray<FRuntimeMeshTangent>& InTangents, TArray<FVector2D>& InTexCoords, const FVector InSize, const int32 InLengthSections, const int32 InWidthSections, const TArray<float>& InHeightValues);
+	static void GenerateGrid(float OctaveInitialFrequency, const float NoiseIntialHeight, const int32 NumberOfOctaves, const float Lacunarity, const float Persistance, const bool MinRadius, const int32 SectionIndex, TArray<FVector>& InVertices, TArray<int32>& InTriangles, TArray<FVector>& InNormals, TArray<FRuntimeMeshTangent>& InTangents, TArray<FVector2D>& InTexCoords, const FVector InSize, const int32 InLengthSections, const int32 InWidthSections);
 
 	UPROPERTY(Transient)
 	FRandomStream RngStream;
