@@ -21,11 +21,19 @@ public:
 	FVector Size = FVector(1000.0f, 1000.0f, 1000.0f); // Size.X is Radius of the sphere
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Procedural Parameters")
-	int32 LengthSections = 100;
-
+	int32 LengthSections = 10;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Procedural Parameters")
-	int32 WidthSections = 100;
+	int32 WidthSections = 10;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Procedural Parameters")
+	int32 HeightSections = 10;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Procedural Parameters")
+	float SurfaceValue = 0.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Procedural Parameters")
+	bool InterpolateSurface = true;
 	
+	// Offset to the noise sample
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Procedural Parameters | Noise Octaves")
+	FVector NoiseOffset = FVector(0.0f, 0.0f, 0.0f);
 	// Number of Noise Octaves to apply
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Procedural Parameters | Noise Octaves")
 	int32 NumberOfOctaves = 2;
@@ -57,10 +65,12 @@ public:
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Transient)
 	URuntimeMeshProviderStatic* StaticProvider;
+	//Calculate Surface Vertex Location from Triangulation Table
+	static FVector	GetLocationOfTrigoPoint(const int PointIndex,const TArray<FVector> Corners,const TArray<float> VertexValue, const float SurfaceValue, const bool InterpolateSurface);
 
 private:
 	void GenerateMesh();
-	static void GenerateGrid(float OctaveInitialFrequency, const float NoiseIntialHeight, const int32 NumberOfOctaves, const float Lacunarity, const float Persistance, const bool MinRadius, const int32 SectionIndex, TArray<FVector>& InVertices, TArray<int32>& InTriangles, TArray<FVector>& InNormals, TArray<FRuntimeMeshTangent>& InTangents, TArray<FVector2D>& InTexCoords, const FVector InSize, const int32 InLengthSections, const int32 InWidthSections);
+	static void GenerateGrid(const bool InterpolateSurface, const float SurfaceValue, const FVector NoiseOffset, const float OctaveInitialFrequency, const float NoiseIntialHeight, const int32 NumberOfOctaves, const float Lacunarity, const float Persistance, const bool MinRadius, const int32 SectionIndex, TArray<FVector>& InVertices, TArray<int32>& InTriangles, TArray<FVector>& InNormals, TArray<FRuntimeMeshTangent>& InTangents, TArray<FVector2D>& InTexCoords, const FVector InSize, const int32 InLengthSections, const int32 InWidthSections, const int32 InHeightSections);
 
 	UPROPERTY(Transient)
 	FRandomStream RngStream;
@@ -80,4 +90,6 @@ private:
 	TArray<FRuntimeMeshTangent> Tangents;
 	UPROPERTY(Transient)
 	TArray<FVector2D> TexCoords;
+
+	const static int	TrigoTable[256][16];
 };
