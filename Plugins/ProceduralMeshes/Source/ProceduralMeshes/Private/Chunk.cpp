@@ -383,7 +383,7 @@ void AChunk::GenerateGrid(const bool InterpolateSurface, const float SurfaceValu
 				VertexValue.Empty();
 				for(int i=0; i<8; i++)
 				{
-					VertexValue.Add(1);
+					VertexValue.Add(Corners[i].Z);
 				}
 				
 				//for number of NoiseOctaves=i
@@ -392,16 +392,16 @@ void AChunk::GenerateGrid(const bool InterpolateSurface, const float SurfaceValu
 				{
 					float frequency = OctaveInitialFrequency * FMath::Pow(Lacunarity, i);
 					//float prevFrequency = (i==0) ? frequency : (OctaveInitialFrequency * FMath::Pow(Lacunarity, (i-1)));
-					//float amplitude = NoiseIntialHeight * FMath::Pow(Persistance, i );
+					float amplitude = NoiseIntialHeight * FMath::Pow(Persistance, i );
 					//Sphere Surface Position
-					VertexValue[0] *= FVector::Distance(Corners[0], FVector(InSize.X /2, InSize.Y /2, InSize.Z /2)) ;//FMath::PerlinNoise3D((Corners[0] + NoiseOffset) * frequency); 
-					VertexValue[1] *= FVector::Distance(Corners[1], FVector(InSize.X /2, InSize.Y /2, InSize.Z /2)) ;//FMath::PerlinNoise3D((Corners[1] + NoiseOffset)  * frequency); 
-					VertexValue[2] *= FVector::Distance(Corners[2], FVector(InSize.X /2, InSize.Y /2, InSize.Z /2)) ;//FMath::PerlinNoise3D((Corners[2] + NoiseOffset) * frequency);
-					VertexValue[3] *= FVector::Distance(Corners[3], FVector(InSize.X /2, InSize.Y /2, InSize.Z /2)) ;//FMath::PerlinNoise3D((Corners[3] + NoiseOffset)  * frequency);
-					VertexValue[4] *= FVector::Distance(Corners[4], FVector(InSize.X /2, InSize.Y /2, InSize.Z /2)) ;//FMath::PerlinNoise3D((Corners[4] + NoiseOffset)  * frequency); 
-					VertexValue[5] *= FVector::Distance(Corners[5], FVector(InSize.X /2, InSize.Y /2, InSize.Z /2)) ;//FMath::PerlinNoise3D((Corners[5] + NoiseOffset)  * frequency); 
-					VertexValue[6] *= FVector::Distance(Corners[6], FVector(InSize.X /2, InSize.Y /2, InSize.Z /2)) ;//FMath::PerlinNoise3D((Corners[6] + NoiseOffset) * frequency);
-					VertexValue[7] *= FVector::Distance(Corners[7], FVector(InSize.X /2, InSize.Y /2, InSize.Z /2)) ;//FMath::PerlinNoise3D((Corners[7] + NoiseOffset) * frequency);
+					VertexValue[0] +=  amplitude * FMath::PerlinNoise3D((Corners[0] + NoiseOffset)  * frequency);
+					VertexValue[1] +=  amplitude * FMath::PerlinNoise3D((Corners[1] + NoiseOffset)  * frequency); 
+					VertexValue[2] +=  amplitude * FMath::PerlinNoise3D((Corners[2] + NoiseOffset)  * frequency);
+					VertexValue[3] +=  amplitude * FMath::PerlinNoise3D((Corners[3] + NoiseOffset)  * frequency);
+					VertexValue[4] +=  amplitude * FMath::PerlinNoise3D((Corners[4] + NoiseOffset)  * frequency); 
+					VertexValue[5] +=  amplitude * FMath::PerlinNoise3D((Corners[5] + NoiseOffset)  * frequency); 
+					VertexValue[6] +=  amplitude * FMath::PerlinNoise3D((Corners[6] + NoiseOffset)  * frequency);
+					VertexValue[7] +=  amplitude * FMath::PerlinNoise3D((Corners[7] + NoiseOffset)  * frequency);
 			
 				}
 

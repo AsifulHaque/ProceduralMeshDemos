@@ -36,7 +36,7 @@ public:
 	FVector NoiseOffset = FVector(0.0f, 0.0f, 0.0f);
 	// Number of Noise Octaves to apply
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Procedural Parameters | Noise Octaves")
-	int32 NumberOfOctaves = 2;
+	int32 NumberOfOctaves = 1;
 	// Frequency for the first Octave
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Procedural Parameters | Noise Octaves")
 	float OctaveInitialFrequency = 1.f;
@@ -45,7 +45,7 @@ public:
 	float Lacunarity = 1.f; 
 	// Height for the first Octave
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Procedural Parameters | Noise Octaves")
-	float NoiseIntialHeight = 100.f; 
+	float NoiseIntialHeight = 10.f; 
 	// Decreases the Amplitude gradually with each octave
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Procedural Parameters | Noise Octaves")
 	float Persistance = 1.f; 
